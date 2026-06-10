@@ -1,5 +1,5 @@
 local VorpCore = exports.vorp_core:GetCore()
-local SERVER_NAME = "🌵 BADLANDS PVP"
+local SERVER_NAME = "🌵 YOUR NAME SERVER PVP"
 
 -- Rank configuration
 local RANK_ICONS = {
