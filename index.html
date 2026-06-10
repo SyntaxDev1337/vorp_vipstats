@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VIP Combat Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#c5a059;--gold-l:#ecc94b;--cyan:#00e5ff;--cyan-d:#0097a7;
+  --bg:#080b12;--bg2:#0d1018;--bg3:#111520;--bg4:#161b28;
+  --border:#1a2035;--border-g:#2a2010;
+  --text:#e2e8f0;--muted:#4a5568;--green:#48bb78;--red:#e53e3e;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;display:none;justify-content:center;align-items:center;height:100vh;overflow:hidden;user-select:none;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:9998;}
+.wrapper{width:1260px;height:760px;background:var(--bg2);border:1px solid #1e2840;border-radius:10px;display:flex;padding:18px;gap:18px;box-shadow:0 0 60px rgba(0,0,0,0.95);animation:boot .3s ease;position:relative;}
+@keyframes boot{from{opacity:0;transform:scale(0.985)}to{opacity:1;transform:none}}
+.corner{position:absolute;width:14px;height:14px;pointer-events:none;}
+.corner.tl{top:6px;left:6px;border-top:1px solid var(--cyan-d);border-left:1px solid var(--cyan-d);}
+.corner.tr{top:6px;right:6px;border-top:1px solid var(--cyan-d);border-right:1px solid var(--cyan-d);}
+.corner.bl{bottom:6px;left:6px;border-bottom:1px solid var(--cyan-d);border-left:1px solid var(--cyan-d);}
+.corner.br{bottom:6px;right:6px;border-bottom:1px solid var(--cyan-d);border-right:1px solid var(--cyan-d);}
+
+.left{width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;}
+.server-card{background:var(--bg3);border:1px solid var(--border-g);border-radius:8px;padding:16px 18px;position:relative;overflow:hidden;}
+.server-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.server-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#fff;letter-spacing:1.5px;}
+.rank-row{display:flex;align-items:center;gap:10px;margin-top:12px;}
+.rank-icon{font-size:22px;}
+.rank-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.rank-name{font-family:'Cinzel',serif;font-size:12px;color:var(--gold);letter-spacing:1px;margin-top:2px;}
+
+.body-panel{flex-grow:1;background:var(--bg3);border:1px solid #1a2840;border-radius:8px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;padding:10px 8px 10px;}
+.body-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan-d);letter-spacing:2px;text-transform:uppercase;align-self:flex-start;margin-bottom:4px;}
+.body-title span{color:var(--cyan);animation:blink 2s step-end infinite;}
+@keyframes blink{50%{opacity:0}}
+.body-svg-wrap{flex-grow:1;display:flex;align-items:center;justify-content:center;position:relative;}
+
+.tooltip{position:fixed;background:rgba(6,9,16,0.98);border:1px solid var(--cyan-d);border-radius:6px;padding:10px 14px;pointer-events:none;z-index:9999;display:none;min-width:155px;box-shadow:0 0 20px rgba(0,229,255,0.15),0 4px 20px rgba(0,0,0,0.8);}
+.tt-zone{font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:7px;padding-bottom:6px;border-bottom:1px solid #1a2035;}
+.tt-row{display:flex;justify-content:space-between;gap:16px;font-size:11px;margin-bottom:3px;}
+.tt-label{color:var(--muted);}
+.tt-val{font-family:'Share Tech Mono',monospace;font-weight:700;}
+
+.hit-bars{width:100%;margin-top:8px;display:flex;flex-direction:column;gap:5px;}
+.hbar-row{display:flex;align-items:center;gap:7px;}
+.hbar-label{width:44px;font-family:'Share Tech Mono',monospace;font-size:9px;}
+.hbar-track{flex-grow:1;height:4px;background:#0d1525;border-radius:3px;overflow:hidden;}
+.hbar-fill{height:100%;border-radius:3px;transition:width .7s cubic-bezier(.4,0,.2,1);}
+.hbar-val{width:36px;text-align:right;font-family:'Share Tech Mono',monospace;font-size:9px;}
+.hb-head .hbar-fill{background:#ecc94b;} .hb-head .hbar-label,.hb-head .hbar-val{color:#ecc94b;}
+.hb-chest .hbar-fill{background:#48bb78;} .hb-chest .hbar-label,.hb-chest .hbar-val{color:#48bb78;}
+.hb-belly .hbar-fill{background:#f6ad55;} .hb-belly .hbar-label,.hb-belly .hbar-val{color:#f6ad55;}
+.hb-arms .hbar-fill{background:#00e5ff;} .hb-arms .hbar-label,.hb-arms .hbar-val{color:#00e5ff;}
+.hb-legs .hbar-fill{background:#fc8181;} .hb-legs .hbar-label,.hb-legs .hbar-val{color:#fc8181;}
+
+.lock-overlay{position:absolute;inset:0;background:rgba(8,11,18,0.93);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+.lock-ico{font-size:28px;color:var(--red);margin-bottom:8px;}
+.lock-t{font-family:'Share Tech Mono',monospace;font-size:11px;color:#fff;letter-spacing:1px;}
+.lock-sub{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+.lock-prog{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan);margin-top:10px;}
+
+.right{flex-grow:1;display:flex;flex-direction:column;min-width:0;}
+.navbar{display:flex;gap:3px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+.tab-btn{padding:7px 20px;background:transparent;border:1px solid transparent;border-radius:5px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);transition:all .15s;}
+.tab-btn:hover{color:var(--text);border-color:var(--border);}
+.tab-btn.active{background:linear-gradient(135deg,#1a1408,#0e0e0a);color:var(--gold-l);border-color:var(--border-g);}
+.tab{display:none;flex-direction:column;flex-grow:1;overflow:hidden;}
+.tab.active{display:flex;}
+.tbl-wrap{border:1px solid var(--border);border-radius:7px;overflow:hidden;overflow-y:auto;}
+.tbl-wrap::-webkit-scrollbar{width:3px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border-g);border-radius:3px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:var(--bg3);color:var(--muted);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(0,229,255,0.02);}
+.c-gold{color:var(--gold);font-weight:700;}.c-cyan{color:var(--cyan);font-weight:600;}
+.c-yellow{color:var(--gold-l);}.c-green{color:var(--green);font-weight:700;}
+.c-red{color:var(--red);}.c-muted{color:var(--muted);}
+.acc-wrap{display:flex;align-items:center;gap:6px;}
+.acc-track{width:60px;height:3px;background:#0d1525;border-radius:3px;overflow:hidden;}
+.acc-fill{height:100%;background:linear-gradient(90deg,var(--cyan-d),var(--cyan));border-radius:3px;}
+.acc-num{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);}
+.history-box{margin-top:12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;overflow:hidden;flex-shrink:0;}
+.history-head{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold-l);letter-spacing:2px;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border);}
+.history-scroll{max-height:200px;overflow-y:auto;padding:8px;}
+.history-scroll::-webkit-scrollbar{width:3px;}
+.history-scroll::-webkit-scrollbar-thumb{background:var(--border-g);border-radius:3px;}
+.mvp-card{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--bg4);border-radius:5px;margin-bottom:5px;border-left:2px solid var(--gold-l);}
+.mvp-card:last-child{margin-bottom:0;}
+.mvp-badge{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--gold-l);letter-spacing:1px;white-space:nowrap;}
+.mvp-arena{font-weight:600;color:#fff;font-size:12px;flex-grow:1;}
+.mvp-date{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);}
+.no-data{text-align:center;color:var(--muted);padding:20px;font-size:12px;font-family:'Share Tech Mono',monospace;}
+.footer{display:flex;justify-content:flex-end;margin-top:10px;flex-shrink:0;}
+.close-btn{background:transparent;color:var(--muted);border:1px solid var(--border);padding:8px 24px;border-radius:5px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;transition:all .15s;}
+.close-btn:hover{border-color:var(--red);color:var(--red);}
+.bzone{cursor:pointer;transition:opacity .15s;}
+.bzone:hover{opacity:0.82;}
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-zone" id="tt-zone">HEAD</div>
+  <div class="tt-row"><span class="tt-label">Hits</span><span class="tt-val" id="tt-hits">0</span></div>
+  <div class="tt-row"><span class="tt-label">Kills</span><span class="tt-val" id="tt-kills">0</span></div>
+  <div class="tt-row"><span class="tt-label">Share</span><span class="tt-val" id="tt-pct">0%</span></div>
+</div>
+
+<div class="wrapper">
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+
+  <div class="left">
+    <div class="server-card">
+      <div class="server-name" id="server-name">BADLANDS PVP</div>
+      <div class="rank-row">
+        <span class="rank-icon" id="rank-icon">🌟</span>
+        <div>
+          <div class="rank-label">ACCESS TIER</div>
+          <div class="rank-name" id="rank-title">VIP</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="body-panel">
+      <div class="body-title">HITMAP SCAN <span>█</span></div>
+      <div class="body-svg-wrap">
+
+        <!--
+          Path-urile de mai jos sunt trasate manual dupa silueta exacta
+          din imagine. Fiecare zona anatomica e un path SVG separat care
+          urmareste conturul real al corpului uman.
+          ViewBox: 220 x 560
+        -->
+        <svg id="body-svg" viewBox="0 0 220 560" width="132" height="336"
+             xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+          <defs>
+            <filter id="zg" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="4" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!--
+            ═══════════════════════════════════════
+            CAP — oval superior, usor turtit jos
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-head" data-zone="Head"
+            d="M110 4
+               C90 4 74 12 68 26 C62 40 64 56 72 66
+               C76 72 82 76 88 78
+               C90 82 91 86 91 90
+               L129 90
+               C129 86 130 82 132 78
+               C138 76 144 72 148 66
+               C156 56 158 40 152 26
+               C146 12 130 4 110 4 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.55)" stroke-width="1.2"/>
+
+          <!--
+            ═══════════════════════════════════════
+            GAT — dreptunghi ingust
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-neck" data-zone="Head"
+            d="M94 90 C92 94 91 98 91 102
+               L129 102 C129 98 128 94 126 90 Z"
+            fill="rgba(130,130,150,0.22)" stroke="rgba(170,175,200,0.45)" stroke-width="1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            UMAR STANG + BRAT SUPERIOR STANG
+            Contur: de la umar, larg in exterior,
+            se ingusteaza spre cot, se largeste
+            la antebrat, se termina la incheietura
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-larm" data-zone="Left Arm"
+            d="M91 104
+               C82 104 70 108 60 116
+               C50 124 42 136 38 150
+               L32 172 C28 186 26 198 26 208
+               C26 220 28 230 34 236
+               C38 240 44 242 50 240
+               C54 238 58 234 60 228
+               L64 210 C67 198 70 186 74 176
+               L80 158 C84 146 88 134 91 124 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.5)" stroke-width="1.2"/>
+
+          <!--
+            MANA STANGA — 5 degete
+          -->
+          <path class="bzone" id="z-lhand" data-zone="Left Arm"
+            d="M26 208 C22 216 20 224 22 232
+               L20 244 C20 248 23 250 26 249
+               L27 258 C28 262 31 263 34 261
+               L36 268 C37 272 40 273 43 271
+               L45 277 C46 280 49 281 52 279
+               L54 270 L56 278 C57 281 60 281 62 278
+               L62 264 L64 254 L66 236
+               C62 238 56 240 50 240
+               C44 242 38 240 34 236 Z"
+            fill="rgba(130,130,150,0.22)" stroke="rgba(170,175,200,0.45)" stroke-width="1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            UMAR DREPT + BRAT SUPERIOR DREPT
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-rarm" data-zone="Right Arm"
+            d="M129 104
+               C138 104 150 108 160 116
+               C170 124 178 136 182 150
+               L188 172 C192 186 194 198 194 208
+               C194 220 192 230 186 236
+               C182 240 176 242 170 240
+               C166 238 162 234 160 228
+               L156 210 C153 198 150 186 146 176
+               L140 158 C136 146 132 134 129 124 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.5)" stroke-width="1.2"/>
+
+          <!--
+            MANA DREAPTA — 5 degete
+          -->
+          <path class="bzone" id="z-rhand" data-zone="Right Arm"
+            d="M194 208 C198 216 200 224 198 232
+               L200 244 C200 248 197 250 194 249
+               L193 258 C192 262 189 263 186 261
+               L184 268 C183 272 180 273 177 271
+               L175 277 C174 280 171 281 168 279
+               L166 270 L164 278 C163 281 160 281 158 278
+               L158 264 L156 254 L154 236
+               C158 238 164 240 170 240
+               C176 242 182 240 186 236 Z"
+            fill="rgba(130,130,150,0.22)" stroke="rgba(170,175,200,0.45)" stroke-width="1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            PIEPT — trunchi superior
+            Lat la umeri, se ingusteaza la talie
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-chest" data-zone="Chest"
+            d="M91 102
+               C88 106 87 112 87 118
+               L87 180 C87 186 89 190 93 192
+               L127 192 C131 190 133 186 133 180
+               L133 118 C133 112 132 106 129 102 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.5)" stroke-width="1.2"/>
+
+          <!--
+            ═══════════════════════════════════════
+            BURTA — abdomen, usor mai ingust
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-belly" data-zone="Belly"
+            d="M87 180 C87 186 89 190 93 192
+               L127 192 C131 190 133 186 133 180
+               L133 230 C133 238 129 244 122 246
+               L98 246 C91 244 87 238 87 230 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.48)" stroke-width="1.1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            SOLD STANG + COAPSA STANGA
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-lthigh" data-zone="Left Thigh"
+            d="M98 246
+               C91 246 85 248 80 254
+               L76 262 C73 270 71 280 70 292
+               L68 320 C67 334 67 346 68 356
+               L70 370 C71 376 74 380 78 382
+               L96 382 C100 380 103 376 104 370
+               L106 356 C107 344 107 330 106 316
+               L104 290 C102 274 100 260 98 246 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.5)" stroke-width="1.2"/>
+
+          <!--
+            ═══════════════════════════════════════
+            SOLD DREPT + COAPSA DREAPTA
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-rthigh" data-zone="Right Thigh"
+            d="M122 246
+               C129 246 135 248 140 254
+               L144 262 C147 270 149 280 150 292
+               L152 320 C153 334 153 346 152 356
+               L150 370 C149 376 146 380 142 382
+               L124 382 C120 380 117 376 116 370
+               L114 356 C113 344 113 330 114 316
+               L116 290 C118 274 120 260 122 246 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.5)" stroke-width="1.2"/>
+
+          <!--
+            ═══════════════════════════════════════
+            GAMBA STANGA (fluier)
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-lshin" data-zone="Left Shin"
+            d="M78 382
+               C74 384 71 388 70 394
+               L68 416 C67 430 67 444 68 456
+               L70 474 C71 482 74 488 78 490
+               L96 490 C100 488 103 482 104 474
+               L106 456 C107 444 107 430 106 416
+               L104 394 C103 388 100 384 96 382 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.48)" stroke-width="1.1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            GAMBA DREAPTA (fluier)
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-rshin" data-zone="Right Shin"
+            d="M142 382
+               C146 384 149 388 150 394
+               L152 416 C153 430 153 444 152 456
+               L150 474 C149 482 146 488 142 490
+               L124 490 C120 488 117 482 116 474
+               L114 456 C113 444 113 430 114 416
+               L116 394 C117 388 120 384 124 382 Z"
+            fill="rgba(130,130,150,0.25)" stroke="rgba(170,175,200,0.48)" stroke-width="1.1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            PICIOR STANG (talpa + glezna)
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-lfoot" data-zone="Left Shin"
+            d="M68 456
+               C67 466 66 476 66 486
+               C66 496 68 504 72 508
+               L78 514 C82 518 88 520 94 520
+               L100 520 C104 518 107 514 108 510
+               C110 506 110 500 108 494
+               L106 490 C103 486 100 488 96 490
+               L78 490 C74 488 71 484 70 478 Z"
+            fill="rgba(130,130,150,0.22)" stroke="rgba(170,175,200,0.44)" stroke-width="1"/>
+
+          <!--
+            ═══════════════════════════════════════
+            PICIOR DREPT (talpa + glezna)
+            ═══════════════════════════════════════
+          -->
+          <path class="bzone" id="z-rfoot" data-zone="Right Shin"
+            d="M152 456
+               C153 466 154 476 154 486
+               C154 496 152 504 148 508
+               L142 514 C138 518 132 520 126 520
+               L120 520 C116 518 113 514 112 510
+               C110 506 110 500 112 494
+               L114 490 C117 486 120 488 124 490
+               L142 490 C146 488 149 484 150 478 Z"
+            fill="rgba(130,130,150,0.22)" stroke="rgba(170,175,200,0.44)" stroke-width="1"/>
+
+        </svg>
+      </div>
+
+      <div class="hit-bars">
+        <div class="hbar-row hb-head"><span class="hbar-label">HEAD</span><div class="hbar-track"><div class="hbar-fill" id="bar-head" style="width:0%"></div></div><span class="hbar-val" id="val-head">0%</span></div>
+        <div class="hbar-row hb-chest"><span class="hbar-label">CHEST</span><div class="hbar-track"><div class="hbar-fill" id="bar-chest" style="width:0%"></div></div><span class="hbar-val" id="val-chest">0%</span></div>
+        <div class="hbar-row hb-belly"><span class="hbar-label">BELLY</span><div class="hbar-track"><div class="hbar-fill" id="bar-belly" style="width:0%"></div></div><span class="hbar-val" id="val-belly">0%</span></div>
+        <div class="hbar-row hb-arms"><span class="hbar-label">ARMS</span><div class="hbar-track"><div class="hbar-fill" id="bar-arms" style="width:0%"></div></div><span class="hbar-val" id="val-arms">0%</span></div>
+        <div class="hbar-row hb-legs"><span class="hbar-label">LEGS</span><div class="hbar-track"><div class="hbar-fill" id="bar-legs" style="width:0%"></div></div><span class="hbar-val" id="val-legs">0%</span></div>
+      </div>
+
+      <div id="lock-overlay" class="lock-overlay">
+        <div class="lock-ico">🔒</div>
+        <div class="lock-t">SCAN LOCKED</div>
+        <div class="lock-sub">Anatomy scan requires<br>minimum 50 confirmed kills.</div>
+        <div class="lock-prog"><span id="lock-n">0</span> / 50 KILLS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="navbar">
+      <div class="tab-btn active" onclick="switchTab('t-arena',this)">▸ Arena Activity</div>
+      <div class="tab-btn" onclick="switchTab('t-weapons',this)">▸ Weapon Efficiency</div>
+    </div>
+
+    <div id="t-arena" class="tab active">
+      <div class="tbl-wrap" style="max-height:252px;">
+        <table>
+          <thead><tr><th>Arena</th><th>Time</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>Fav. Weapon</th></tr></thead>
+          <tbody id="arena-tbody"></tbody>
+        </table>
+      </div>
+      <div class="history-box">
+        <div class="history-head">★ MVP MATCH HISTORY</div>
+        <div class="history-scroll" id="history-list"></div>
+      </div>
+    </div>
+
+    <div id="t-weapons" class="tab">
+      <div class="tbl-wrap" style="max-height:580px;">
+        <table>
+          <thead><tr><th>Weapon</th><th>Kills</th><th>Headshots</th><th>Shots Fired</th><th>Accuracy</th><th>Fav Zone</th><th>Min Used</th></tr></thead>
+          <tbody id="weapons-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="close-btn" onclick="exitUI()">[ CLOSE TRACKER ]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ZONE_DATA = {};
+
+const tooltip = document.getElementById('tooltip');
+document.querySelectorAll('.bzone').forEach(el => {
+  el.addEventListener('mousemove', e => {
+    const z = el.dataset.zone;
+    const d = ZONE_DATA[z] || {hits:0,kills:0,pct:'0%',color:'#aaa'};
+    document.getElementById('tt-zone').innerText    = z.toUpperCase();
+    document.getElementById('tt-zone').style.color  = d.color;
+    document.getElementById('tt-hits').innerText    = d.hits;
+    document.getElementById('tt-hits').style.color  = d.color;
+    document.getElementById('tt-kills').innerText   = d.kills;
+    document.getElementById('tt-kills').style.color = '#48bb78';
+    document.getElementById('tt-pct').innerText     = d.pct;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 18) + 'px';
+    tooltip.style.top  = (e.clientY - 14) + 'px';
+  });
+  el.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+});
+
+function switchTab(id, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+window.addEventListener('keydown', e => { if(e.key==='Escape') exitUI(); });
+window.addEventListener('message', e => {
+  if(e.data.action==='open'){
+    document.body.style.display='flex';
+    render(e.data.serverName,e.data.rankData,e.data.stats,e.data.weapons,e.data.arenas,e.data.history);
+  }
+});
+
+function hexToRgba(hex, a) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a.toFixed(2)})`;
+}
+
+function applyHeat(ids, color, intensity) {
+  const capped = Math.min(intensity, 1);
+  const fillA  = 0.18 + capped * 0.67;
+  const strokeA= 0.40 + capped * 0.55;
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.fill   = hexToRgba(color, fillA);
+    el.style.stroke = hexToRgba(color, strokeA);
+  });
+}
+
+function render(serverName, rank, stats, weapons, arenas, history) {
+  if(serverName) document.getElementById('server-name').innerText = serverName;
+  if(rank){
+    document.getElementById('rank-title').innerText = rank.title||'VIP';
+    document.getElementById('rank-icon').innerText  = rank.icon||'🌟';
+  }
+
+  const kills = stats ? parseInt(stats.total_kills)||0 : 0;
+  if(kills >= 0){
+    document.getElementById('lock-overlay').style.display='none';
+
+    const head  = parseInt(stats.hit_head)||0;
+    const chest = parseInt(stats.hit_chest)||0;
+    const legs  = parseInt(stats.hit_legs)||0;
+    const belly = Math.floor(chest * 0.4);
+    const chestN= chest - belly;
+    const arms  = Math.floor((head+chest+legs)*0.1);
+    const total = (head+chestN+belly+arms+legs)||1;
+
+    const zones = [
+      {key:'Head',        ids:['z-head','z-neck'],          hits:head,               kills:Math.floor(head*0.65),    color:'#ecc94b', barId:'head',  intensity:head/total},
+      {key:'Chest',       ids:['z-chest'],                  hits:chestN,             kills:Math.floor(chestN*0.3),   color:'#48bb78', barId:'chest', intensity:chestN/total},
+      {key:'Belly',       ids:['z-belly'],                  hits:belly,              kills:Math.floor(belly*0.18),   color:'#f6ad55', barId:'belly', intensity:belly/total},
+      {key:'Left Arm',    ids:['z-larm','z-lhand'],         hits:Math.floor(arms/2), kills:0,                        color:'#00e5ff', intensity:(arms/2)/total},
+      {key:'Right Arm',   ids:['z-rarm','z-rhand'],         hits:Math.floor(arms/2), kills:0,                        color:'#00e5ff', barId:'arms',  intensity:(arms/2)/total},
+      {key:'Left Thigh',  ids:['z-lthigh'],                 hits:Math.floor(legs*0.3), kills:Math.floor(legs*0.04),  color:'#fc8181', intensity:(legs*0.3)/total},
+      {key:'Right Thigh', ids:['z-rthigh'],                 hits:Math.floor(legs*0.3), kills:Math.floor(legs*0.04),  color:'#fc8181', barId:'legs',  intensity:(legs*0.3)/total},
+      {key:'Left Shin',   ids:['z-lshin','z-lfoot'],        hits:Math.floor(legs*0.2), kills:0,                      color:'#e53e3e', intensity:(legs*0.2)/total},
+      {key:'Right Shin',  ids:['z-rshin','z-rfoot'],        hits:Math.floor(legs*0.2), kills:0,                      color:'#e53e3e', intensity:(legs*0.2)/total},
+    ];
+
+    const armTotal = arms;
+    const legTotal = legs;
+    setBar('arms', Math.round(armTotal/total*100));
+    setBar('legs', Math.round(legTotal/total*100));
+
+    zones.forEach(z => {
+      ZONE_DATA[z.key] = {hits:z.hits, kills:z.kills, pct:Math.round(z.intensity*100)+'%', color:z.color};
+      applyHeat(z.ids, z.color, z.intensity * 3.0);
+      if(z.barId && z.barId!=='arms' && z.barId!=='legs')
+        setBar(z.barId, Math.round(z.intensity*100));
+    });
+
+  } else {
+    document.getElementById('lock-overlay').style.display='flex';
+    document.getElementById('lock-n').innerText = kills;
+  }
+
+  let ah='';
+  for(let i=1;i<=7;i++){
+    const a=(arenas&&arenas[i])||{time:0,kills:0,deaths:0,fav_weapon:'None',name:'Arena '+i};
+    const kd=a.deaths>0?(a.kills/a.deaths).toFixed(2):a.kills>0?'∞':'—';
+    ah+=`<tr><td class="c-gold">${a.name||'Arena '+i}</td><td class="c-muted">${a.time}m</td><td>${a.kills}</td><td class="c-red">${a.deaths}</td><td class="c-cyan">${kd}</td><td class="c-yellow">${a.fav_weapon||'None'}</td></tr>`;
+  }
+  document.getElementById('arena-tbody').innerHTML=ah;
+
+  const mvps=(history||[]).filter(m=>m.result==='MVP');
+  document.getElementById('history-list').innerHTML = mvps.length>0
+    ? mvps.map(m=>`<div class="mvp-card"><span class="mvp-badge">★ MVP</span><span class="mvp-arena">${m.arena_name}</span><span style="font-size:11px;"><span class="c-yellow" style="font-weight:700">${m.kills}K</span><span class="c-muted"> / </span><span class="c-red">${m.deaths}D</span></span><span class="mvp-date">${m.date}</span></div>`).join('')
+    : '<div class="no-data">// NO MVP RECORDS FOUND</div>';
+
+  let wh='';
+  if(weapons&&weapons.length>0){
+    weapons.forEach(w=>{
+      const fired=parseInt(w.fired)||0, hit=parseInt(w.hit)||0;
+      const acc=fired>0?((hit/fired)*100).toFixed(1):0;
+      wh+=`<tr><td class="c-gold">${w.name}</td><td>${w.total_kills}</td><td class="c-yellow">${w.headshots}</td><td class="c-muted">${fired}</td><td><div class="acc-wrap"><div class="acc-track"><div class="acc-fill" style="width:${Math.min(acc,100)}%"></div></div><span class="acc-num">${acc}%</span></div></td><td class="c-cyan">${w.favorite_zone}</td><td class="c-muted">${w.minutes_used}</td></tr>`;
+    });
+  } else { wh='<tr><td colspan="7" class="no-data">// NO WEAPON DATA</td></tr>'; }
+  document.getElementById('weapons-tbody').innerHTML=wh;
+}
+
+function setBar(name,pct){
+  document.getElementById('bar-'+name).style.width=pct+'%';
+  document.getElementById('val-'+name).innerText=pct+'%';
+}
+function exitUI(){
+  document.body.style.display='none';
+  fetch(`https://${GetParentResourceName()}/closeUI`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+}
+</script>
+</body>
+</html>
